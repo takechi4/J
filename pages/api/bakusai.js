@@ -11,27 +11,26 @@ export default async function handler(req, res) {
     const posts = [];
     let title = "";
 
+    // スレタイ取得
     const titleMatch = html.match(/<h1[^>]*>(.*?)<\/h1>/) ||
                        html.match(/<div class="threadTitle">([^<]+)<\/div>/);
     if (titleMatch) {
       title = titleMatch[1].trim();
     }
 
-    const resBlocks = [...html.matchAll(/<div class="resArea">([\s\S]*?)<\/div>\s*<\/div>/g)];
-    for (const block of resBlocks) {
-      const resHtml = block[1];
+    // 各レス抽出（爆サイ最新仕様対応）
+    const resBlocks = [...html.matchAll(/<div class="resNo">(#?\d+)<\/div>\\s*<div class="resDate">([^<]+)<\/div>\\s*<div class="resMsg">([\s\S]*?)<\/div>/g)];
 
-      const numMatch = resHtml.match(/<div class="resNo">([^<]*)<\/div>/);
-      const dateMatch = resHtml.match(/<div class="resDate">([^<]*)<\/div>/);
-      const msgMatch = resHtml.match(/<div class="resMsg">([\s\S]*?)<\/div>/);
-
-      if (!numMatch || !dateMatch || !msgMatch) continue;
-
+    for (const match of resBlocks) {
       posts.push({
-        num: numMatch[1].trim(),
-        date: dateMatch[1].trim(),
-        msg: msgMatch[1].trim(),
+        num: match[1].trim(),
+        date: match[2].trim(),
+        msg: match[3].trim(),
       });
+    }
+
+    if (posts.length === 0) {
+      return res.status(200).json({ title: "ika error!", posts: [] });
     }
 
     return res.status(200).json({ title, posts });
